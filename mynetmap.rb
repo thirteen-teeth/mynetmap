@@ -10,6 +10,7 @@
 # rbenv install -l
 # rbenv install 3.0.2
 # rbenv global 3.0.2
+# gem install puppetdb-ruby
 
 require 'puppetdb'
 require 'json'
@@ -37,13 +38,13 @@ limit = 1000
 request_type = ''
 request_parameters = 'nodes {}'
 
-response = client.request(
+nodes_response = client.request(
   "#{request_type}",
   request_parameters,
   {:limit => limit}
 )
 
-response.data.each do |nodes|
+nodes_response.data.each do |nodes|
   puts nodes['certname']
 
   request_type = 'resources'
