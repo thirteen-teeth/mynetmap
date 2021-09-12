@@ -34,6 +34,7 @@ client = PuppetDB::Client.new({
 
 #limit will be used everywhere for the most part
 limit = 1000
+myobject = Hash.new
 
 request_type = ''
 request_parameters = 'nodes {}'
@@ -45,7 +46,6 @@ nodes_response = client.request(
 )
 
 nodes_response.data.each do |nodes|
-  puts nodes['certname']
 
   request_type = 'resources'
   request_parameters = [:and,
@@ -60,5 +60,6 @@ nodes_response.data.each do |nodes|
   )
 
   resources = response.data
-  puts JSON.pretty_generate(resources)
+  myobject[nodes['certname']] = { 'resources' => resources }
+
 end
