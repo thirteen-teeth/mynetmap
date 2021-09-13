@@ -23,6 +23,7 @@ client = PuppetDB::Client.new({
     'ca_file' => "/etc/puppetlabs/puppet/ssl/certs/ca.pem"
     }})
 
+# puts JSON.pretty_generate(resources)
 #query_string = 'fact_contents { path ~> ["networking","interfaces",".*","mac"] }'
 #query_string = 'nodes { certname = "master.puppetdomain" }'
 #query_string = 'facts[name, value] {certname = "master.puppetdomain"}'
@@ -47,6 +48,8 @@ nodes_response = client.request(
 
 nodes_response.data.each do |nodes|
 
+  puts "#{nodes['certname']}"
+
   request_type = 'resources'
   request_parameters = [:and,
       [:'=', 'type', 'Class'],
@@ -60,6 +63,24 @@ nodes_response.data.each do |nodes|
   )
 
   resources = response.data
-  myobject[nodes['certname']] = { 'resources' => resources }
+  # filtered_resources = resources.select {|rez| rez['title'].include?("Role")}
+  # filtered_resources.each do |filt_rez|
+  #   puts "  > #{filt_rez['title']}"
+  # end
+
+  # filtered_resources = resources.select {|rez| rez['title'].include?("Profile")}
+  # filtered_resources.each do |filt_rez|
+  #   puts "    - #{filt_rez['title']}"
+  # end
+
+  sorted_resources = resources.sort_by{|resource| resource['title'] }
+  sorted_resources.each do |sorted_resource|
+    puts "  - #{sorted_resource['title']}"
+  end
+
+  #myobject[nodes['certname']] = { 'resources' => resources }
+  #myobject[nodes['certname']]['resources'].each do |filtered_resource|
+  #  puts "certname: #{nodes['certname']} resource_title: #{filtered_resource['title']}"
+  #end
 
 end
