@@ -14,6 +14,7 @@
 
 require 'puppetdb'
 require 'json'
+require 'yaml'
 
 def client_request(server, request_type, request_parameters)
   limit = 1000
@@ -63,8 +64,27 @@ def get_class_data(nodes_response)
   return per_node_classes
 end
 
+def get_networking_data(networking_response)
+  per_node_networking = {}
+  networking_response.each do |node|
+    # request_type = ''
+    # request_parameters = 'fact_contents { path ~> ["networking","interfaces",".*","mac"] }'
+    # request_parameters = 'fact_contents { path ~> ["networking", ".*"] }'
+    # request_parameters = 'fact_contents { path ~> ["networking", ".*"] }'
+    request_type = 'facts'
+    request_parameters = [:and, [:'=', 'certname', node]]
+    networking_response = client_request($puppetdb_server, request_type, request_parameters)
+    puts "networking_response = #{JSON.pretty_generate(networking_response)}"  
+  end
+  puts "per_node_networking = #{per_node_networking}"
+  return per_node_networking
+end
+
 $puppetdb_server = 'https://master.puppetdomain:8081'
 
 client_array = get_client_list()
 class_data = get_class_data(client_array)
-puts JSON.pretty_generate(class_data)
+networking_data = get_networking_data(client_array)
+#puts JSON.pretty_generate(networking_data)
+
+puts class_data.to_yaml
