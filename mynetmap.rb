@@ -15,11 +15,8 @@
 require 'puppetdb'
 require 'json'
 
-
 def client_request(server, request_type, request_parameters)
-  #limit will be used everywhere for the most part
   limit = 1000
-
   client = PuppetDB::Client.new({
     :server => server,
     :pem    => {
@@ -27,13 +24,11 @@ def client_request(server, request_type, request_parameters)
       'cert'    => "/etc/puppetlabs/puppet/ssl/certs/#{ENV['HOSTNAME']}.pem",
       'ca_file' => "/etc/puppetlabs/puppet/ssl/certs/ca.pem"
       }})
-
   response = client.request(
     "#{request_type}",
     request_parameters,
     {:limit => limit}
   )
-
   client_request_data = response.data
   return client_request_data
 end
@@ -50,28 +45,20 @@ def get_client_list()
 end
 
 def get_class_data(nodes_response)
-
   per_node_classes = {}
-
   nodes_response.each do |nodes|
-    my_array = []
+    classes_array = []
     request_type = 'resources'
     request_parameters = [:and,
         [:'=', 'type', 'Class'],
         [:'=', 'certname', nodes]
       ]
-    #puts "request_type = #{request_type}"
-    #puts "request_parameters = #{request_parameters}"
     class_response = client_request($puppetdb_server, request_type, request_parameters)
     sorted_classes = class_response.sort_by{|my_class| my_class['title'] }
-    #puts "sorted_classes = #{JSON.pretty_generate(sorted_classes)}"
     sorted_classes.each do |sorted_class|
-      my_array.push(sorted_class['title'])
-      #puts "sorted_class['certname'] #{sorted_class['certname']} sorted_class['title'] #{sorted_class['title']}"
-      #puts "my_array = #{my_array}"
+      classes_array.push(sorted_class['title'])
     end
-    #puts my_array
-    per_node_classes[nodes] = { 'classes' => my_array }
+    per_node_classes[nodes] = { 'classes' => classes_array }
   end
   return per_node_classes
 end
