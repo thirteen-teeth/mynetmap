@@ -70,7 +70,6 @@ def get_networking_data(networking_response)
     # request_type = ''
     # request_parameters = 'fact_contents { path ~> ["networking","interfaces",".*","mac"] }'
     # request_parameters = 'fact_contents { path ~> ["networking", ".*"] }'
-    # request_parameters = 'fact_contents { path ~> ["networking", ".*"] }'
     request_type = 'facts'
     request_parameters = [:and, [:'=', 'certname', node]]
     networking_response = client_request($puppetdb_server, request_type, request_parameters)
