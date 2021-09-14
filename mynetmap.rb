@@ -15,46 +15,18 @@
 require 'puppetdb'
 require 'json'
 
-client = PuppetDB::Client.new({
-  :server => 'https://master.puppetdomain:8081',
-  :pem    => {
-    'key'     => "/etc/puppetlabs/puppet/ssl/private_keys/#{ENV['HOSTNAME']}.pem",
-    'cert'    => "/etc/puppetlabs/puppet/ssl/certs/#{ENV['HOSTNAME']}.pem",
-    'ca_file' => "/etc/puppetlabs/puppet/ssl/certs/ca.pem"
-    }})
 
-# puts JSON.pretty_generate(resources)
-#query_string = 'fact_contents { path ~> ["networking","interfaces",".*","mac"] }'
-#query_string = 'nodes { certname = "master.puppetdomain" }'
-#query_string = 'facts[name, value] {certname = "master.puppetdomain"}'
-#response = client.request(
-#  '',
-#  "#{query_string}",
-#  {:limit => 1000}
-#)
+def client_request(server, request_type, request_parameters)
+  #limit will be used everywhere for the most part
+  limit = 1000
 
-#limit will be used everywhere for the most part
-limit = 1000
-myobject = Hash.new
-
-request_type = ''
-request_parameters = 'nodes {}'
-
-nodes_response = client.request(
-  "#{request_type}",
-  request_parameters,
-  {:limit => limit}
-)
-
-nodes_response.data.each do |nodes|
-
-  puts "#{nodes['certname']}"
-
-  request_type = 'resources'
-  request_parameters = [:and,
-      [:'=', 'type', 'Class'],
-      [:'=', 'certname', nodes['certname']]
-    ]
+  client = PuppetDB::Client.new({
+    :server => server,
+    :pem    => {
+      'key'     => "/etc/puppetlabs/puppet/ssl/private_keys/#{ENV['HOSTNAME']}.pem",
+      'cert'    => "/etc/puppetlabs/puppet/ssl/certs/#{ENV['HOSTNAME']}.pem",
+      'ca_file' => "/etc/puppetlabs/puppet/ssl/certs/ca.pem"
+      }})
 
   response = client.request(
     "#{request_type}",
@@ -62,25 +34,50 @@ nodes_response.data.each do |nodes|
     {:limit => limit}
   )
 
-  resources = response.data
-  # filtered_resources = resources.select {|rez| rez['title'].include?("Role")}
-  # filtered_resources.each do |filt_rez|
-  #   puts "  > #{filt_rez['title']}"
-  # end
-
-  # filtered_resources = resources.select {|rez| rez['title'].include?("Profile")}
-  # filtered_resources.each do |filt_rez|
-  #   puts "    - #{filt_rez['title']}"
-  # end
-
-  sorted_resources = resources.sort_by{|resource| resource['title'] }
-  sorted_resources.each do |sorted_resource|
-    puts "  - #{sorted_resource['title']}"
-  end
-
-  #myobject[nodes['certname']] = { 'resources' => resources }
-  #myobject[nodes['certname']]['resources'].each do |filtered_resource|
-  #  puts "certname: #{nodes['certname']} resource_title: #{filtered_resource['title']}"
-  #end
-
+  client_request_data = response.data
+  return client_request_data
 end
+
+def get_client_list()
+  nodes_request_type = ''
+  nodes_request_parameters = 'nodes {}'
+  nodes_response = client_request($puppetdb_server, nodes_request_type, nodes_request_parameters)
+  clients = []
+  nodes_response.each do |node_response|
+    clients.push(node_response['certname'])
+  end
+  return clients
+end
+
+def get_class_data(nodes_response)
+
+  per_node_classes = {}
+
+  nodes_response.each do |nodes|
+    my_array = []
+    request_type = 'resources'
+    request_parameters = [:and,
+        [:'=', 'type', 'Class'],
+        [:'=', 'certname', nodes]
+      ]
+    #puts "request_type = #{request_type}"
+    #puts "request_parameters = #{request_parameters}"
+    class_response = client_request($puppetdb_server, request_type, request_parameters)
+    sorted_classes = class_response.sort_by{|my_class| my_class['title'] }
+    #puts "sorted_classes = #{JSON.pretty_generate(sorted_classes)}"
+    sorted_classes.each do |sorted_class|
+      my_array.push(sorted_class['title'])
+      #puts "sorted_class['certname'] #{sorted_class['certname']} sorted_class['title'] #{sorted_class['title']}"
+      #puts "my_array = #{my_array}"
+    end
+    #puts my_array
+    per_node_classes[nodes] = { 'classes' => my_array }
+  end
+  return per_node_classes
+end
+
+$puppetdb_server = 'https://master.puppetdomain:8081'
+
+client_array = get_client_list()
+class_data = get_class_data(client_array)
+puts JSON.pretty_generate(class_data)
