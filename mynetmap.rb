@@ -84,6 +84,5 @@ $puppetdb_server = 'https://master.puppetdomain:8081'
 client_array = get_client_list()
 class_data = get_class_data(client_array)
 networking_data = get_networking_data(client_array)
-#puts JSON.pretty_generate(networking_data)
 
 puts class_data.to_yaml
